@@ -1,5 +1,9 @@
 var Product = require('../models/product');
 
+exports.index = (req, res) => {
+	res.send('NOT IMPLEMENTED: Site Home Page');
+};
+
 exports.product_list = (req, res) => {
 	res.send('Not yet! product list');
 };
