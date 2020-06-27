@@ -1,0 +1,14 @@
+extends layout
+
+block content
+  h1= title
+  
+  ul
+    - brand_list.sort(function(a, b) {let textA = a.name.toUpperCase(); let textB = b.name.toUpperCase(); return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;});
+    each brand in brand_list
+      li 
+        a(href=brand.url) #{brand.name} 
+        | -  #{brand.description}
+
+    else
+      li There are no brands.

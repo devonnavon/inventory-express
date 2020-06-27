@@ -1,0 +1,16 @@
+extends layout
+
+block content
+
+  h1 Product: #{title}
+  
+  div(style='margin-left:20px;margin-top:20px')
+
+    p Description: #{details.description}
+    p Price: #{details.price} cuts
+    p Brand: 
+        a(href=details.brand.url) #{details.brand.name}
+    p Category: 
+        a(href=details.category.url) #{details.category.name}
+    
+    

@@ -1,11 +1,53 @@
-var Category = require('../models/category');
+const Category = require('../models/category');
+const Product = require('../models/product');
+
+const async = require('async');
+const validator = require('express-validator');
 
 exports.category_list = (req, res) => {
-	res.send('Not yet! category list');
+	Category.find({}, 'name description').exec(function (err, list_categories) {
+		if (err) {
+			return next(err);
+		}
+		//Successful, so render
+		res.render('category_list', {
+			title: 'Category List',
+			category_list: list_categories,
+		});
+	});
 };
 
-exports.category_detail = (req, res) => {
-	res.send('Not yet! category detail' + req.params.id);
+// Display detail page for a specific category.
+
+exports.category_detail = function (req, res, next) {
+	async.parallel(
+		{
+			category: function (callback) {
+				Category.findById(req.params.id).exec(callback);
+			},
+
+			category_products: function (callback) {
+				Product.find({ category: req.params.id }).exec(callback);
+			},
+		},
+		function (err, results) {
+			if (err) {
+				return next(err);
+			}
+			if (results.category == null) {
+				// No results.
+				var err = new Error('category not found');
+				err.status = 404;
+				return next(err);
+			}
+			// Successful, so render
+			res.render('category_detail', {
+				title: 'category Detail',
+				category: results.category,
+				category_products: results.category_products,
+			});
+		}
+	);
 };
 
 exports.category_create_get = (req, res) => {

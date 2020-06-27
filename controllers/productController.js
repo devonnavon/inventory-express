@@ -1,15 +1,59 @@
 var Product = require('../models/product');
+var Brand = require('../models/brand');
+var Category = require('../models/category');
+
+var async = require('async');
 
 exports.index = (req, res) => {
-	res.send('NOT IMPLEMENTED: Site Home Page');
+	async.parallel(
+		{
+			product_count: (callback) => {
+				Product.countDocuments({}, callback); // Pass an empty object as match condition to find all documents of this collection
+			},
+			brand_count: (callback) => {
+				Brand.countDocuments({}, callback);
+			},
+			category_count: function (callback) {
+				Category.countDocuments({}, callback);
+			},
+		},
+		function (err, results) {
+			res.render('index', {
+				title: 'Inventory Home',
+				error: err,
+				data: results,
+			});
+		}
+	);
 };
 
-exports.product_list = (req, res) => {
-	res.send('Not yet! product list');
+exports.product_list = function (req, res, next) {
+	Product.find({}, 'name')
+		.populate('brand category')
+		.exec(function (err, list_products) {
+			if (err) {
+				return next(err);
+			}
+			//Successful, so render
+			res.render('product_list', {
+				title: 'Product List',
+				product_list: list_products,
+			});
+		});
 };
 
-exports.product_detail = (req, res) => {
-	res.send('Not yet! product detail' + req.params.id);
+exports.product_detail = (req, res, next) => {
+	Product.findById(req.params.id)
+		.populate('category brand')
+		.exec((err, product_details) => {
+			if (err) {
+				return next(err);
+			}
+			res.render('product_detail', {
+				title: product_details.name,
+				details: product_details,
+			});
+		});
 };
 
 exports.product_create_get = (req, res) => {

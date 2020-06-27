@@ -1,11 +1,50 @@
 var Brand = require('../models/brand');
+var Product = require('../models/product');
 
-exports.brand_list = (req, res) => {
-	res.send('Not yet! brand list');
+var async = require('async');
+
+exports.brand_list = function (req, res, next) {
+	Brand.find({}, 'name description').exec(function (err, list_brands) {
+		if (err) {
+			return next(err);
+		}
+		//Successful, so render
+		res.render('brand_list', {
+			title: 'Brand List',
+			brand_list: list_brands,
+		});
+	});
 };
 
 exports.brand_detail = (req, res) => {
-	res.send('Not yet! brand detail' + req.params.id);
+	async.parallel(
+		{
+			brand: function (callback) {
+				Brand.findById(req.params.id).exec(callback);
+			},
+
+			brand_products: function (callback) {
+				Product.find({ brand: req.params.id }).exec(callback);
+			},
+		},
+		function (err, results) {
+			if (err) {
+				return next(err);
+			}
+			if (results.brand == null) {
+				// No results.
+				var err = new Error('brand not found');
+				err.status = 404;
+				return next(err);
+			}
+			// Successful, so render
+			res.render('brand_detail', {
+				title: 'Brand Detail',
+				brand: results.brand,
+				brand_products: results.brand_products,
+			});
+		}
+	);
 };
 
 exports.brand_create_get = (req, res) => {
