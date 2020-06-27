@@ -2,6 +2,9 @@ var Product = require('../models/product');
 var Brand = require('../models/brand');
 var Category = require('../models/category');
 
+const { body, validationResult } = require('express-validator/check');
+const { sanitizeBody } = require('express-validator/filter');
+
 var async = require('async');
 
 exports.index = (req, res) => {
@@ -56,13 +59,96 @@ exports.product_detail = (req, res, next) => {
 		});
 };
 
-exports.product_create_get = (req, res) => {
-	res.send('Not yet! product create get');
+exports.product_create_get = (req, res, next) => {
+	async.parallel(
+		{
+			brands: function (callback) {
+				Brand.find(callback);
+			},
+			categories: function (callback) {
+				Category.find(callback);
+			},
+		},
+		function (err, results) {
+			if (err) {
+				return next(err);
+			}
+			res.render('product_form', {
+				title: 'Add Product',
+				brands: results.brands,
+				categories: results.categories,
+			});
+		}
+	);
 };
 
-exports.product_create_post = (req, res) => {
-	res.send('Not yet! product create post');
-};
+exports.product_create_post = [
+	// Validate fields.
+	body('name', 'name must not be empty.').trim().isLength({ min: 1 }),
+	body('price', 'Price must not be empty.').trim().isLength({ min: 1 }),
+	body('description', 'Description must not be empty.')
+		.trim()
+		.isLength({ min: 1 }),
+
+	// Sanitize fields (using wildcard).
+	sanitizeBody('*').escape(),
+
+	// Process request after validation and sanitization.
+	(req, res, next) => {
+		// Extract the validation errors from a request.
+		const errors = validationResult(req);
+
+		// Create a Book object with escaped and trimmed data.
+		var product = new Product({
+			name: req.body.name,
+			description: req.body.description,
+			price: req.body.price,
+			brand: req.body.brand,
+			category: req.body.category,
+		});
+
+		if (!errors.isEmpty()) {
+			// There are errors. Render form again with sanitized values/error messages.
+
+			// Get all authors and genres for form.
+			async.parallel(
+				{
+					brands: function (callback) {
+						Brand.find(callback);
+					},
+					categories: function (callback) {
+						Category.find(callback);
+					},
+				},
+				function (err, results) {
+					if (err) {
+						return next(err);
+					}
+
+					// Mark our selected genres as checked.
+
+					res.render('product_form', {
+						title: 'Create Product',
+						brands: results.brands,
+						categories: results.categories,
+						product: product,
+						errors: errors.array(),
+					});
+				}
+			);
+			return;
+		} else {
+			// Data from form is valid. Save book.
+			product.save(function (err) {
+				if (err) {
+					return next(err);
+				}
+				//successful - redirect to new book record.
+				res.redirect(product.url);
+			});
+		}
+	},
+];
 
 exports.product_delete_get = (req, res) => {
 	res.send('Not yet! product delete get');
